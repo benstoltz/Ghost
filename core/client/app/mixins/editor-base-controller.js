@@ -243,10 +243,16 @@ export default Ember.Mixin.create({
                 timedSaveId = this.get('timedSaveId'),
                 self = this,
                 psmController = this.get('postSettingsMenuController'),
-                promise,
-                notifications = this.get('notifications');
+                promise;
 
             options = options || {};
+
+            // when navigating quickly between pages autoSave will occasionally
+            // try to run after the editor has been torn down so bail out here
+            // before we throw errors
+            if (!this.get('editor').$()) {
+                return 0;
+            }
 
             this.toggleProperty('submitting');
 
@@ -266,8 +272,6 @@ export default Ember.Mixin.create({
                 Ember.run.cancel(timedSaveId);
                 this.set('timedSaveId', null);
             }
-
-            notifications.closeNotifications();
 
             // Set the properties that are indirected
             // set markdown equal to what's in the editor, minus the image markers.
