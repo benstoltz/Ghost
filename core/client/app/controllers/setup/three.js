@@ -6,6 +6,7 @@ export default Ember.Controller.extend({
     two: Ember.inject.controller('setup/two'),
 
     errors: DS.Errors.create(),
+    hasValidated: Ember.A(),
     users: '',
     ownerEmail: Ember.computed.alias('two.email'),
     submitting: false,
@@ -63,9 +64,13 @@ export default Ember.Controller.extend({
 
     validate: function () {
         var errors = this.get('errors'),
-            validationResult = this.get('validationResult');
+            validationResult = this.get('validationResult'),
+            property = 'users';
 
         errors.clear();
+
+        // If property isn't in the `hasValidated` array, add it to mark that this field can show a validation result
+        this.get('hasValidated').addObject(property);
 
         if (validationResult === true) { return true; }
 
@@ -73,7 +78,7 @@ export default Ember.Controller.extend({
             // Only one error type here so far, but one day the errors might be more detailed
             switch (error.error) {
             case 'email':
-                errors.add('users', error.user + ' is not a valid email.');
+                errors.add(property, error.user + ' is not a valid email.');
             }
         });
 
@@ -167,7 +172,8 @@ export default Ember.Controller.extend({
                         });
 
                         if (erroredEmails.length > 0) {
-                            message = 'Failed to send ' + erroredEmails.length + ' invitations: ';
+                            invitationsString = erroredEmails.length > 1 ? ' invitations: ' : ' invitation: ';
+                            message = 'Failed to send ' + erroredEmails.length + invitationsString;
                             message += erroredEmails.join(', ');
                             notifications.showAlert(message, {type: 'error', delayed: successCount > 0});
                         }
@@ -175,13 +181,11 @@ export default Ember.Controller.extend({
                         if (successCount > 0) {
                             // pluralize
                             invitationsString = successCount > 1 ? 'invitations' : 'invitation';
-
                             notifications.showAlert(successCount + ' ' + invitationsString + ' sent!', {type: 'success', delayed: true});
-                            self.send('loadServerNotifications');
-                            self.transitionToRoute('posts.index');
                         }
-
+                        self.send('loadServerNotifications');
                         self.toggleProperty('submitting');
+                        self.transitionToRoute('posts.index');
                     });
                 });
             } else if (users.length === 0) {
